@@ -1,0 +1,1 @@
+add_library(crypt STATIC Crypt.ixx)
