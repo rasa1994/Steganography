@@ -6,9 +6,9 @@ auto main() -> int
 	std::cout << TestSequence.size() << std::endl;
 	std::string TestKey = "2K22L";
 	CryptValues cryptValues(TestKey);
-	const auto withRandomValues = InsertRandomValues(TestSequence, cryptValues.m_randValues);
-	const auto randomShifted = ShiftString(withRandomValues, cryptValues.m_shiftValues);
-	const auto cyphered = CreateVectorOfBits(randomShifted);
+	                const auto withRandomValues = InsertRandomValues(TestSequence, cryptValues.m_randValues);
+	         const auto randomShifted = ShiftString(withRandomValues, cryptValues.m_shiftValues);
+	    const auto cyphered = CreateVectorOfBits(randomShifted);
 	auto result = CreateHashedString(cyphered);
 
 	auto hashedString = result;
@@ -17,9 +17,9 @@ auto main() -> int
 	matrix.InsertCryptedString(result, 4);
 	result = matrix.GetCryptedMessageFromMatrix(4);
 
-	const auto decrypted = CreateVectorOfBitsFromHashedValue(result);
-	const auto decypher = DecypherCipheredVector(decrypted);
-	const auto removeShift = RemoveShiftString(decypher, cryptValues.m_shiftValues);
+	    const auto decrypted = CreateVectorOfBitsFromHashedValue(result);
+	          const auto decypher = DecypherCipheredVector(decrypted);
+	                  const auto removeShift = RemoveShiftString(decypher, cryptValues.m_shiftValues);
 	const auto removedValues = RemoveRandomValues(removeShift, cryptValues.m_randValues);
 
 	std::cout << removedValues;

@@ -42,12 +42,21 @@ TEST(CryptTest, RemoveShiftString)
 	EXPECT_EQ(shifted, "45678123");
 }
 
+TEST(CryptTest, ShiftRemoveShift)
+{
+	constexpr auto sentence = "123awawdawdwdawdawdadawdawddawdaw45678123zzmcmmcmcmc!!!HHHHH@#awdzzxxczxczcxzcsssaddzxc";
+	constexpr auto shiftPlace = 1555;
+	const auto shifted = ShiftString(sentence, shiftPlace);
+	auto removed = RemoveShiftString(shifted, shiftPlace);
+	EXPECT_EQ(removed, sentence);
+}
+
 TEST(CryptTest, RemoveRandomValues)
 {
 	constexpr auto sentence = "123456789";
 	constexpr auto randCharacter = 3;
 	const auto removed = RemoveRandomValues(sentence, randCharacter);
-	EXPECT_EQ(removed, "147");
+	EXPECT_EQ(removed, "159");
 }
 
 TEST(CryptTest, InsertRandomValues)
@@ -56,6 +65,15 @@ TEST(CryptTest, InsertRandomValues)
 	constexpr auto randCharacter = 3;
 	const auto inserted = InsertRandomValues(sentence, randCharacter);
 	EXPECT_EQ(inserted.size(), sentence.size() * (randCharacter + 1));
+}
+
+TEST(CryptTest, InsertAndRemoveRandomValues)
+{
+	const std::string sentence = "hello world!";
+	constexpr auto randCharacter = 3;
+	const auto inserted = InsertRandomValues(sentence, randCharacter);
+	const auto removed = RemoveRandomValues(inserted, randCharacter);
+	EXPECT_EQ(sentence, removed);
 }
 
 TEST(CryptTest, ShiftString)
@@ -95,6 +113,44 @@ TEST(CryptTest, DecypherCipheredVector)
 	EXPECT_EQ(decyphered, message);
 }
 
+
+TEST(CryptTest, GetCryptedMessageFromMatrix)
+{
+	Matrix matrix(100, 100);
+	matrix.InsertCryptedString("Hello World959595959595119ajiajjisidjaijdjiwadjijiwAIWWIDIAWDIAIWD9292992929211131322333345!", 4);
+	const auto result = matrix.GetCryptedMessageFromMatrix(4);
+	EXPECT_EQ(result, "Hello World959595959595119ajiajjisidjaijdjiwadjijiwAIWWIDIAWDIAIWD9292992929211131322333345!");
+}
+
+TEST(CryptTest, GetCryptedMessageFromMatrixWithShift)
+{
+	const auto CompareLower = [](const std::string& str1, const std::string& str2)
+		{
+		  return std::ranges::equal(str1, str2, [](char a, char b)
+		  {
+			return std::tolower(a) == std::tolower(b);
+		  });
+		};
+	const std::string beginingTestString = "This is first test string!";
+	std::string hashString = "191K22m";
+	CryptValues cryptValues(std::move(hashString));
+	const auto bits = InsertRandomValues(beginingTestString, cryptValues.m_randValues);
+	const auto randomShifted = ShiftString(bits, cryptValues.m_shiftValues);
+	const auto cyphered = CreateVectorOfBits(randomShifted);
+	auto result = CreateHashedString(cyphered);
+
+	Matrix matrix(100, 100);
+	matrix.InsertCryptedString(result, 4);
+	result = matrix.GetCryptedMessageFromMatrix(4);
+	const auto decrypted = CreateVectorOfBitsFromHashedValue(result);
+	EXPECT_EQ(cyphered, decrypted);
+	const auto decypher = DecypherCipheredVector(decrypted);
+	EXPECT_TRUE(CompareLower(randomShifted, decypher));
+	const auto removeShift = RemoveShiftString(decypher, cryptValues.m_shiftValues);
+	EXPECT_TRUE(CompareLower(bits, removeShift));
+	const auto removedValues = RemoveRandomValues(removeShift, cryptValues.m_randValues);
+	EXPECT_TRUE(CompareLower(beginingTestString, removedValues));
+}
 
 int main()
 {

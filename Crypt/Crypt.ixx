@@ -25,7 +25,7 @@ export
 	struct Matrix
 	{
 	private:
-		using container = std::vector<std::vector<std::array<size_t, 3>>>;
+		using container = std::vector<std::vector<std::array<size_t, UseBytes>>>;
 		container matrix;
 		using it = typename container::iterator;
 		using cit = typename container::const_iterator;
@@ -98,17 +98,17 @@ export
 						continue;
 					}
 
+					if (returnValue.size() == 11)
+					{
+						int x = 0;
+						x++;
+					}
+
 					if (messageLength == returnValue.size())
 						return returnValue;
 
 					for (size_t k = 0; k < UseBytes; k++)
 					{
-						if (nextByte >= BIT)
-						{
-							nextByte = 0;
-							returnValue.push_back(static_cast<char>(Char.to_ulong()));
-						}
-
 						std::bitset<BIT> value(matrix[i][j][k]);
 
 						for (size_t l = 0; l < static_cast<size_t>(BIT - cryptBytes); l++)
@@ -119,6 +119,12 @@ export
 						for (size_t l = 0; l < static_cast<size_t>(BIT - cryptBytes); l++)
 						{
 							Char[nextByte++] = fourBytesUse[l];
+						}
+
+						if (nextByte >= BIT)
+						{
+							nextByte = 0;
+							returnValue.push_back(static_cast<char>(Char.to_ulong()));
 						}
 					}
 				}
@@ -155,7 +161,7 @@ export
 					{
 						if (!Char.has_value())
 						{
-							if (nextChar == cryptedMessage.size() - 1)
+							if (nextChar == cryptedMessage.size())
 								return;
 
 							Char = std::bitset<BIT>(cryptedMessage[nextChar++]);
@@ -390,7 +396,7 @@ export
 	std::string RemoveRandomValues(const std::string& sentence, size_t randCharacter)
 	{
 		std::string returnValue{};
-		for (auto character{0ul}; character < sentence.size(); character += randCharacter)
+		for (auto character{0ul}; character < sentence.size(); character += (randCharacter + 1))
 		{
 			returnValue.push_back(sentence[character]);
 		}
