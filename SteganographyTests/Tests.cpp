@@ -1,7 +1,8 @@
+#include <bitset>
 #include <gtest/gtest.h>
 
 import Crypt;
-
+import ImageCryptHandler;
 
 TEST(CryptTest, GetCryptRandValues)
 {
@@ -150,6 +151,48 @@ TEST(CryptTest, GetCryptedMessageFromMatrixWithShift)
 	EXPECT_TRUE(CompareLower(bits, removeShift));
 	const auto removedValues = RemoveRandomValues(removeShift, cryptValues.m_randValues);
 	EXPECT_TRUE(CompareLower(beginingTestString, removedValues));
+}
+
+TEST(ImageCryptHandlerTest, EmplaceValueToPixel)
+{
+	RGBA pixel{ 0, 0, 0, 0 };
+	constexpr auto value = 2125;
+	EmplaceValueToPixel(pixel, value);
+	const auto extracted = ExtractValueFromPixel(pixel);
+	EXPECT_EQ(value, extracted);
+}
+
+
+TEST(ImageCryptHandlerTest, EmplaceTwoCharsToPixel)
+{
+	RGBA pixel{ 0, 0, 0, 0 };
+	constexpr auto a = 'a';
+	constexpr auto b = 'b';
+	EmplaceTwoCharsToPixel(pixel, a, b);
+	std::bitset<BIT> bitsetR(pixel.R);
+	std::bitset<BIT> bitsetG(pixel.G);
+	std::bitset<BIT> bitsetB(pixel.B);
+	std::bitset<BIT> bitsetA(pixel.A);
+	std::bitset<BIT> bitsetCharA(a);
+	std::bitset<BIT> bitsetCharB(b);
+	for (auto bit{ 0ul }; bit < BIT / 2; ++bit)
+	{
+		EXPECT_EQ(bitsetR[bit + BIT / 2], bitsetCharA[bit]);
+		EXPECT_EQ(bitsetG[bit + BIT / 2], bitsetCharA[bit + BIT / 2]);
+		EXPECT_EQ(bitsetB[bit + BIT / 2], bitsetCharB[bit]);
+		EXPECT_EQ(bitsetA[bit + BIT / 2], bitsetCharB[bit + BIT / 2]);
+	}
+}
+
+TEST(ImageCryptHandlerTest, ExtractedTwoCharsFromPixel)
+{
+	RGBA pixel{ 0, 0, 0, 0 };
+	constexpr auto a = 'a';
+	constexpr auto b = 'b';
+	EmplaceTwoCharsToPixel(pixel, a, b);
+	const auto extractedA = ExtractTwoCharsFromPixel(pixel);
+	EXPECT_EQ(a, extractedA.first);
+	EXPECT_EQ(b, extractedA.second);
 }
 
 int main()

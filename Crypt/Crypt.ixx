@@ -98,12 +98,6 @@ export
 						continue;
 					}
 
-					if (returnValue.size() == 11)
-					{
-						int x = 0;
-						x++;
-					}
-
 					if (messageLength == returnValue.size())
 						return returnValue;
 
