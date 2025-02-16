@@ -21,6 +21,7 @@ export
 	const std::string key = "32R17K";
 	constexpr size_t MaxBits = 6;
 
+	template <size_t UseBytes = 4>
 	struct Matrix
 	{
 	private:
@@ -76,8 +77,7 @@ export
 			std::string returnValue;
 			std::bitset<BIT> Char;
 			size_t nextByte = 0;
-			std::bitset<2> twoBytesUse;
-			std::bitset<4> fourBytesUse;
+			std::bitset<BIT / 2> fourBytesUse;
 			size_t messageLength = 0;
 			for (size_t i = 0; i < matrix.size(); i++)
 			{
@@ -85,8 +85,8 @@ export
 				{
 					if (i == 0 && j == 0)
 					{
-						std::bitset<24> length(0);
-						for (size_t k = 0; k < 3; k++)
+						std::bitset<BIT * UseBytes> length(0);
+						for (size_t k = 0; k < UseBytes; k++)
 						{
 							std::bitset<BIT> factorDivided(matrix[i][j][k]);
 							for (size_t l = 0; l < BIT; l++)
@@ -95,14 +95,13 @@ export
 							}
 						}
 						messageLength = length.to_ulong();
-						std::cout << messageLength;
 						continue;
 					}
 
 					if (messageLength == returnValue.size())
 						return returnValue;
 
-					for (size_t k = 0; k < 3; k++)
+					for (size_t k = 0; k < UseBytes; k++)
 					{
 						if (nextByte >= BIT)
 						{
@@ -114,27 +113,12 @@ export
 
 						for (size_t l = 0; l < static_cast<size_t>(BIT - cryptBytes); l++)
 						{
-							if (cryptBytes == 2)
-							{
-								twoBytesUse[l] = value[l];
-							}
-							else
-							{
-								fourBytesUse[l] = value[l];
-							}
+							fourBytesUse[l] = value[l];
 						}
 
 						for (size_t l = 0; l < static_cast<size_t>(BIT - cryptBytes); l++)
 						{
-							// Change this part
-							if (cryptBytes == 2)
-							{
-								Char[nextByte++] = twoBytesUse[l];
-							}
-							else
-							{
-								Char[nextByte++] = fourBytesUse[l];
-							}
+							Char[nextByte++] = fourBytesUse[l];
 						}
 					}
 				}
@@ -145,19 +129,18 @@ export
 
 		void InsertCryptedString(const std::string& cryptedMessage, size_t cryptBytes)
 		{
-			std::bitset<24> messageLength(cryptedMessage.size());
+			std::bitset<BIT * UseBytes> messageLength(cryptedMessage.size());
 			std::optional<std::bitset<BIT>> Char;
 			size_t nextChar = 0;
 			size_t nextByte = 0;
-			std::bitset<2> twoBytesUse;
-			std::bitset<4> fourBytesUse;
+			std::bitset<BIT / 2> fourBytesUse;
 			for (size_t i = 0; i < matrix.size(); i++)
 			{
 				for (size_t j = 0; j < matrix[i].size(); j++)
 				{
 					if (i == 0 && j == 0)
 					{
-						for (size_t k = 0; k < 3; k++)
+						for (size_t k = 0; k < UseBytes; k++)
 						{
 							std::bitset<BIT> factorDivided(0);
 							for (size_t l = 0; l < BIT; l++)
@@ -168,7 +151,7 @@ export
 						}
 						continue;
 					}
-					for (size_t k = 0; k < 3; k++)
+					for (size_t k = 0; k < UseBytes; k++)
 					{
 						if (!Char.has_value())
 						{
@@ -180,18 +163,10 @@ export
 
 						for (size_t l = static_cast<size_t>(BIT - cryptBytes); l < BIT; l++)
 						{
-							// Change this part
-							if (cryptBytes == 2)
-							{
-								twoBytesUse[l - (BIT - cryptBytes)] = Char.value()[nextByte++];
-							}
-							else
-							{
-								fourBytesUse[l - (BIT - cryptBytes)] = Char.value()[nextByte++];
-							}
+							fourBytesUse[l - (BIT - cryptBytes)] = Char.value()[nextByte++];
 						}
 
-						matrix[i][j][k] = static_cast<size_t>((cryptBytes == 2) ? twoBytesUse.to_ulong() : fourBytesUse.to_ullong());
+						matrix[i][j][k] = fourBytesUse.to_ullong();
 						if (nextByte >= BIT)
 						{
 							nextByte = 0;
