@@ -10,13 +10,16 @@ import <cassert>;
 import <vector>;
 import <optional>;
 import <array>;
+#include <string>
 
 
 export
 {
 
 	using uchar = unsigned char;
+	constexpr auto BIT = CHAR_BIT;
 	const std::string key = "32R17K";
+	constexpr size_t MaxBits = 6;
 
 	struct Matrix
 	{
@@ -71,7 +74,7 @@ export
 		std::string GetCryptedMessageFromMatrix(size_t cryptBytes)
 		{
 			std::string returnValue;
-			std::bitset<8> Char;
+			std::bitset<BIT> Char;
 			size_t nextByte = 0;
 			std::bitset<2> twoBytesUse;
 			std::bitset<4> fourBytesUse;
@@ -85,10 +88,10 @@ export
 						std::bitset<24> length(0);
 						for (size_t k = 0; k < 3; k++)
 						{
-							std::bitset<8> factorDivided(matrix[i][j][k]);
-							for (size_t l = 0; l < 8; l++)
+							std::bitset<BIT> factorDivided(matrix[i][j][k]);
+							for (size_t l = 0; l < BIT; l++)
 							{
-								length[l + k * 8] = factorDivided[l];
+								length[l + k * BIT] = factorDivided[l];
 							}
 						}
 						messageLength = length.to_ulong();
@@ -101,15 +104,15 @@ export
 
 					for (size_t k = 0; k < 3; k++)
 					{
-						if (nextByte >= 8)
+						if (nextByte >= BIT)
 						{
 							nextByte = 0;
 							returnValue.push_back(static_cast<char>(Char.to_ulong()));
 						}
 
-						std::bitset<8> value(matrix[i][j][k]);
+						std::bitset<BIT> value(matrix[i][j][k]);
 
-						for (size_t l = 0; l < static_cast<size_t>(8 - cryptBytes); l++)
+						for (size_t l = 0; l < static_cast<size_t>(BIT - cryptBytes); l++)
 						{
 							if (cryptBytes == 2)
 							{
@@ -121,7 +124,7 @@ export
 							}
 						}
 
-						for (size_t l = 0; l < static_cast<size_t>(8 - cryptBytes); l++)
+						for (size_t l = 0; l < static_cast<size_t>(BIT - cryptBytes); l++)
 						{
 							// Change this part
 							if (cryptBytes == 2)
@@ -143,7 +146,7 @@ export
 		void InsertCryptedString(const std::string& cryptedMessage, size_t cryptBytes)
 		{
 			std::bitset<24> messageLength(cryptedMessage.size());
-			std::optional<std::bitset<8>> Char;
+			std::optional<std::bitset<BIT>> Char;
 			size_t nextChar = 0;
 			size_t nextByte = 0;
 			std::bitset<2> twoBytesUse;
@@ -156,10 +159,10 @@ export
 					{
 						for (size_t k = 0; k < 3; k++)
 						{
-							std::bitset<8> factorDivided(0);
-							for (size_t l = 0; l < 8; l++)
+							std::bitset<BIT> factorDivided(0);
+							for (size_t l = 0; l < BIT; l++)
 							{
-								factorDivided[l] = messageLength[l + k * 8];
+								factorDivided[l] = messageLength[l + k * BIT];
 							}
 							matrix[i][j][k] = static_cast<size_t>(factorDivided.to_ulong());
 						}
@@ -172,24 +175,24 @@ export
 							if (nextChar == cryptedMessage.size() - 1)
 								return;
 
-							Char = std::bitset<8>(cryptedMessage[nextChar++]);
+							Char = std::bitset<BIT>(cryptedMessage[nextChar++]);
 						}
 
-						for (size_t l = static_cast<size_t>(8 - cryptBytes); l < 8; l++)
+						for (size_t l = static_cast<size_t>(BIT - cryptBytes); l < BIT; l++)
 						{
 							// Change this part
 							if (cryptBytes == 2)
 							{
-								twoBytesUse[l - (8 - cryptBytes)] = Char.value()[nextByte++];
+								twoBytesUse[l - (BIT - cryptBytes)] = Char.value()[nextByte++];
 							}
 							else
 							{
-								fourBytesUse[l - (8 - cryptBytes)] = Char.value()[nextByte++];
+								fourBytesUse[l - (BIT - cryptBytes)] = Char.value()[nextByte++];
 							}
 						}
 
 						matrix[i][j][k] = static_cast<size_t>((cryptBytes == 2) ? twoBytesUse.to_ulong() : fourBytesUse.to_ullong());
-						if (nextByte >= 8)
+						if (nextByte >= BIT)
 						{
 							nextByte = 0;
 							Char.reset();
@@ -302,8 +305,6 @@ export
 		{'9', 45}
 	};
 
-	constexpr size_t MaxBits = 6;
-
 
 	std::vector<std::bitset<MaxBits>> CreateVectorOfBits(const std::string& message)
 	{
@@ -319,30 +320,30 @@ export
 		return cyphered;
 	}
 
-	std::string CreateHashedString(const std::vector<std::bitset<MaxBits>>& cypheredString)
+	std::string CreateHashedString(const std::vector<std::bitset<MaxBits>>& cypheredChars)
 	{
 		std::string returnValue;
 		std::vector<bool> fullCypheredValues;
-		fullCypheredValues.reserve(cypheredString.size() * MaxBits + 8);
-		for (const auto& cString : cypheredString)
+		fullCypheredValues.reserve(cypheredChars.size() * MaxBits + BIT);
+		for (const auto& cChar : cypheredChars)
 		{
-			for (auto lbegin = 0; lbegin < MaxBits; lbegin++)
+			for (auto bit{0ul}; bit < MaxBits; ++bit)
 			{
-				fullCypheredValues.push_back(cString[lbegin]);
+				fullCypheredValues.push_back(cChar[bit]);
 			}
 		}
 
-		while (fullCypheredValues.size() % 8 != 0)
+		while (fullCypheredValues.size() % BIT != 0)
 		{
 			fullCypheredValues.push_back(false);
 		}
 
-		for (size_t Char = 0; Char < fullCypheredValues.size(); Char += 8)
+		for (auto character{0ul}; character < fullCypheredValues.size(); character += BIT)
 		{
-			std::bitset<8> word(0);
-			for (size_t pos = 0; pos < 8; pos++)
+			std::bitset<BIT> word(0);
+			for (size_t pos = 0; pos < BIT; pos++)
 			{
-				word[pos] = fullCypheredValues[Char + pos];
+				word[pos] = fullCypheredValues[character + pos];
 			}
 			returnValue.push_back(static_cast<char>(word.to_ulong()));
 		}
@@ -354,13 +355,13 @@ export
 	{
 		std::vector<std::bitset<MaxBits>> returnValue;
 		std::vector<bool> cypheredToArray;
-		cypheredToArray.reserve(cyphered.size() * 8);
-		for (const auto c : cyphered)
+		cypheredToArray.reserve(cyphered.size() * BIT);
+		for (const auto character : cyphered)
 		{
-			std::bitset<8> charToBit(c);
-			for (size_t lbegin = 0; lbegin < 8; lbegin++)
+			std::bitset<BIT> charToBit(character);
+			for (auto bit{0ul}; bit < BIT; ++bit)
 			{
-				cypheredToArray.push_back(charToBit[lbegin]);
+				cypheredToArray.push_back(charToBit[bit]);
 			}
 		}
 
@@ -369,12 +370,12 @@ export
 			cypheredToArray.pop_back();
 		}
 
-		for (size_t word = 0; word < cypheredToArray.size(); word += MaxBits)
+		for (auto word{0ul}; word < cypheredToArray.size(); word += MaxBits)
 		{
 			std::bitset<MaxBits> oneChar(0);
-			for (size_t lBegin = 0; lBegin < MaxBits; lBegin++)
+			for (auto bit{0ul}; bit < MaxBits; ++bit)
 			{
-				oneChar[lBegin] = cypheredToArray[word + lBegin];
+				oneChar[bit] = cypheredToArray[word + bit];
 			}
 			returnValue.push_back(oneChar);
 		}
@@ -385,10 +386,10 @@ export
 	{
 		std::string returnValue;
 
-		for (const auto& Char : decyphered)
+		for (const auto& character : decyphered)
 		{
-			const auto val = std::ranges::find_if(codes, [Char](const auto& codeVal) {return codeVal.second == Char; });
-			returnValue.push_back(val->first);
+			const auto val = std::ranges::find_if(codes | std::ranges::views::values, [character](const auto& codeVal) {return codeVal == character; });
+			returnValue.push_back(val.base()->first);
 		}
 
 		return returnValue;
@@ -397,10 +398,10 @@ export
 	std::string InsertRandomValues(const std::string& sentence, size_t randCharacter)
 	{
 		std::string returnValue;
-		for (const auto Char : sentence)
+		for (const auto& character : sentence)
 		{
-			returnValue.push_back(Char);
-			for (auto _ : std::views::iota(0ul, randCharacter))
+			returnValue.push_back(character);
+			for (const auto _ : std::views::iota(0ul, randCharacter))
 			{
 				auto it = codes.begin();
 				std::advance(it, GetRandomNumber(0, codes.size()));
@@ -414,9 +415,9 @@ export
 	std::string RemoveRandomValues(const std::string& sentence, size_t randCharacter)
 	{
 		std::string returnValue{};
-		for (size_t Char = 0; Char < sentence.size(); Char += randCharacter)
+		for (auto character{0ul}; character < sentence.size(); character += randCharacter)
 		{
-			returnValue.push_back(sentence[Char]);
+			returnValue.push_back(sentence[character]);
 		}
 		return returnValue;
 	}
@@ -427,9 +428,9 @@ export
 		std::string returnValue;
 		returnValue.resize(sentence.size());
 
-		for (size_t Char = 0; Char < sentence.size(); Char++)
+		for (auto character{0ul}; character < sentence.size(); ++character)
 		{
-			returnValue[(Char + shiftPlace) % sentence.size()] = sentence[Char];
+			returnValue[(character + shiftPlace) % sentence.size()] = sentence[character];
 		}
 
 		return returnValue;
@@ -437,9 +438,7 @@ export
 
 	std::string RemoveShiftString(const std::string& sentence, size_t shiftPlace)
 	{
-		shiftPlace = shiftPlace % sentence.size();
-		shiftPlace = sentence.size() - shiftPlace;
-
+		shiftPlace = sentence.size() - (shiftPlace % sentence.size());
 		return ShiftString(sentence, shiftPlace);
 	}
 }
