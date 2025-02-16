@@ -1,15 +1,15 @@
 export module Crypt;
 
 export import <iostream>;
-export import <unordered_map>;
-export import <algorithm>;
-export import <bitset>;
-export import <ranges>;
-export import <random>;
-export import <cassert>;
-export import <vector>;
-export import <optional>;
-export import <array>;
+import <unordered_map>;
+import <algorithm>;
+import <bitset>;
+import <ranges>;
+import <random>;
+import <cassert>;
+import <vector>;
+import <optional>;
+import <array>;
 
 
 export
@@ -308,11 +308,14 @@ export
 	std::vector<std::bitset<MaxBits>> CreateVectorOfBits(const std::string& message)
 	{
 		std::vector<std::bitset<MaxBits>> cyphered;
-		for (const auto c : message)
-		{
-			const auto value = codes.at(c);
-			cyphered.emplace_back(value);
-		}
+		std::ranges::transform(message, std::back_inserter(cyphered), [](const auto c)
+			{
+				if (const auto toLower = std::tolower(c); codes.contains(toLower))
+					return codes.at(toLower);
+
+				return size_t{};
+			});
+
 		return cyphered;
 	}
 

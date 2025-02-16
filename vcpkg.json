@@ -1,0 +1,6 @@
+{
+    "name": "imagehandler",
+    "dependencies": [
+      "gtest"
+    ]
+  }
