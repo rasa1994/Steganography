@@ -4,9 +4,13 @@ export import ImageLoader;
 import <iostream>;
 import <bitset>;
 import <optional>;
+import <filesystem>;
 
 void WriteIntoImage(Image& image, const std::string& message);
+void LoadFromImage(Image& image, std::string& message);
+
 constexpr auto ImageDimension = 4;
+constexpr auto BMP_FILENAME = "\\Crypted.bmp";
 
 export
 {
@@ -65,19 +69,97 @@ export
 			return;
 		}
 
-		WriteIntoImage(img, message);
+		CryptValues cryptValues(key);
+		const auto bits = InsertRandomValues(message, cryptValues.m_randValues);
+		const auto randomShifted = ShiftString(bits, cryptValues.m_shiftValues);
+		const auto cyphered = CreateVectorOfBits(randomShifted);
+		const auto result = CreateHashedString(cyphered);
+
+		WriteIntoImage(img, result);
+		const auto parentPath = std::filesystem::path(path).parent_path().string();
+		WriteImage(img, parentPath + BMP_FILENAME, error);
+	}
+
+	void DecryptImage(const std::string& path, const std::string& key, std::string& hiddenMessage)
+	{
+		ErrorType error = ErrorType::NO_ERROR;
+		Image img = LoadImageFile(path, error);
+		if (error != ErrorType::NO_ERROR)
+		{
+			std::cout << GetErrorString(error) << std::endl;
+			return;
+		}
+
+		if (img.type != ImageType::BMP)
+		{
+			std::cout << "Only BMP images are supported" << std::endl;
+			return;
+		}
+
+		CryptValues cryptValues(key);
+		std::string message{};
+		LoadFromImage(img, message);
+		const auto decrypted = CreateVectorOfBitsFromHashedValue(message);
+		const auto decypher = DecypherCipheredVector(decrypted);
+		const auto removeShift = RemoveShiftString(decypher, cryptValues.m_shiftValues);
+		const auto removedRandomValues = RemoveRandomValues(removeShift, cryptValues.m_randValues);
+		hiddenMessage = removedRandomValues;
 	}
 
 	void WriteIntoImage(Image& image, const std::string& message)
 	{
+		auto nextChar{ 0ul };
 		for (auto row{ 0ul }; row < image.m_height; ++row)
 		{
 			for (auto col{ 0ul }; col < image.m_width; ++col)
 			{
 				if (row == 0 && col == 0)
 				{
-					std::bitset<BIT* ImageDimension> length(message.size());
+					auto pixel = image.GetPixel(row, col);
+					EmplaceValueToPixel(pixel, message.size());
+					image.SetPixel(row, col, pixel);
+					continue;
 				}
+
+				if (nextChar < message.size())
+				{
+					auto pixel = image.GetPixel(row, col);
+					EmplaceTwoCharsToPixel(pixel, message[nextChar], message.size() > nextChar + 1 ? std::optional<char>{message[nextChar + 1]} : std::nullopt);
+					nextChar += 2;
+					image.SetPixel(row, col, pixel);
+				}
+				else
+					return;
+			}
+		}
+	}
+
+
+	void LoadFromImage(Image& image, std::string& message)
+	{
+		auto nextChar{ 0ul };
+		for (auto row{ 0ul }; row < image.m_height; ++row)
+		{
+			for (auto col{ 0ul }; col < image.m_width; ++col)
+			{
+				if (row == 0 && col == 0)
+				{
+					auto pixel = image.GetPixel(row, col);
+					message.resize(ExtractValueFromPixel(pixel));
+					continue;
+				}
+				if (nextChar < message.size())
+				{
+					auto pixel = image.GetPixel(row, col);
+					const auto [a, b] = ExtractTwoCharsFromPixel(pixel);
+					message[nextChar++] = a;
+					if (nextChar < message.size() - 1)
+					{
+						message[nextChar++] = b;
+					}
+				}
+				else
+					return;
 			}
 		}
 	}
