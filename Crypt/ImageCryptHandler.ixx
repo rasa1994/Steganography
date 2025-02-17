@@ -11,6 +11,7 @@ void LoadFromImage(Image& image, std::string& message);
 
 constexpr auto ImageDimension = 4;
 constexpr auto BMP_FILENAME = "\\Crypted.bmp";
+constexpr auto BMP_FILENAME_DECRYPTED = "\\Decrypted.bmp";
 
 export
 {
@@ -18,6 +19,8 @@ export
 	size_t ExtractValueFromPixel(const RGBA& pixel);
 	void EmplaceTwoCharsToPixel(RGBA& pixel, char a, const std::optional<char>& b);
 	std::pair<char, char> ExtractTwoCharsFromPixel(const RGBA& pixel);
+	void MergeTwoPixel(unsigned char& mainElement, const unsigned char& elementToMerge);
+	unsigned char ExtractFromPixel(unsigned char element);
 
 	unsigned char& GetElement(RGBA& pixel, size_t index)
 	{
@@ -51,7 +54,6 @@ export
 		}
 		throw std::out_of_range("Index out of range");
 	}
-
 
 	void EncryptImage(const std::string& path, const std::string& message, const std::string& key)
 	{
@@ -135,7 +137,6 @@ export
 		}
 	}
 
-
 	void LoadFromImage(Image& image, std::string& message)
 	{
 		auto nextChar{ 0ul };
@@ -165,6 +166,10 @@ export
 		}
 	}
 
+	void EncryptImageIntoImage(const std::string& image1, const std::string& image2);
+
+	void DecryptImageFromImage(const std::string& image1);
+
 	void EmplaceValueToPixel(RGBA& pixel, size_t value)
 	{
 		std::bitset<BIT* ImageDimension> bitsetValue(value);
@@ -192,7 +197,6 @@ export
 		}
 		return value.to_ulong();
 	}
-
 
 	void EmplaceTwoCharsToPixel(RGBA& pixel, char a, const std::optional<char>& b)
 	{
@@ -240,6 +244,131 @@ export
 		}
 
 		return { static_cast<char>(bitsetCharA.to_ulong()), static_cast<char>(bitsetCharB.to_ulong()) };
+	}
+}
+
+unsigned char ExtractFromPixel(unsigned char element)
+{
+	std::bitset<BIT> bitset(element);
+	std::bitset<BIT> bitsetExtracted;
+	for (auto bit{ 0ul }; bit < BIT / 2; ++bit)
+	{
+		bitsetExtracted[bit + BIT / 2] = bitset[bit];
+	}
+	return static_cast<unsigned char>(bitsetExtracted.to_ulong());
+}
+
+void MergeTwoPixel(unsigned char& mainElement, const unsigned char& elementToMerge)
+{
+	std::bitset<BIT> bitsetMain(mainElement);
+	std::bitset<BIT> bitsetMerge(elementToMerge);
+	for (auto bit{ 0ul }; bit < BIT / 2; ++bit)
+	{
+		bitsetMain[bit] = bitsetMerge[bit + BIT / 2];
+	}
+	mainElement = static_cast<unsigned char>(bitsetMain.to_ulong());
+}
+
+void DecryptImageFromImage(const std::string& image1)
+{
+	ErrorType error = ErrorType::NO_ERROR;
+	Image img = LoadImageFile(image1, error);
+	if (error != ErrorType::NO_ERROR)
+	{
+		std::cout << GetErrorString(error) << std::endl;
+		return;
+	}
+
+	if (img.type != ImageType::BMP)
+	{
+		std::cout << "Only BMP images are supported" << std::endl;
+		return;
+	}
+
+	auto width = ExtractValueFromPixel(img.GetPixel(0, 0));
+	auto height = ExtractValueFromPixel(img.GetPixel(0, 1));
+
+	auto nextElement{ 2 * ImageDimension };
+
+	Image image{};
+	image.m_imageData = std::vector<unsigned char>(width * height * ImageDimension);
+	image.m_width = width;
+	image.m_height = height;
+	image.type = ImageType::BMP;
+	image.m_channels = ImageDimension;
+
+	for (auto pixel{ 0ul }; pixel < image.m_imageData.size(); ++pixel)
+	{
+		auto element2 = img.m_imageData[nextElement++];
+		auto extracted = ExtractFromPixel(element2);
+		image.m_imageData[pixel] = extracted;
+	}
+
+	const auto parentPath = std::filesystem::path(image1).parent_path().string();
+	WriteImage(image, parentPath + BMP_FILENAME_DECRYPTED, error);
+	if (error != ErrorType::NO_ERROR)
+	{
+		std::cout << GetErrorString(error) << std::endl;
+	}
+}
+
+void EncryptImageIntoImage(const std::string& image1, const std::string& image2)
+{
+	ErrorType error = ErrorType::NO_ERROR;
+	Image img1 = LoadImageFile(image1, error);
+	if (error != ErrorType::NO_ERROR)
+	{
+		std::cout << GetErrorString(error) << std::endl;
+		return;
+	}
+
+	Image img2 = LoadImageFile(image2, error);
+	if (error != ErrorType::NO_ERROR)
+	{
+		std::cout << GetErrorString(error) << std::endl;
+		return;
+	}
+
+	if (img2.m_imageData.size() > img1.m_imageData.size())
+	{
+		std::cout << "First image is too small for the second image" << std::endl;
+		return;
+	}
+
+	const auto CheckValidType = [](ImageType type)
+	{
+			return type == ImageType::BMP || type == ImageType::PNG;
+	};
+
+	if (!CheckValidType(img1.type) || !CheckValidType(img2.type))
+	{
+		std::cout << "Only BMP and PNG images are supported" << std::endl;
+		return;
+	}
+
+	auto pixelForWidth = img1.GetPixel(0, 0);
+	auto pixelForHeight = img1.GetPixel(0, 1);
+
+	EmplaceValueToPixel(pixelForWidth, img2.m_width);
+	EmplaceValueToPixel(pixelForHeight, img2.m_height);
+	img1.SetPixel(0, 0, pixelForWidth);
+	img1.SetPixel(0, 1, pixelForHeight);
+
+	auto nextElement{ 2 * ImageDimension };
+
+	for (auto pixel{0ul}; pixel < img2.m_imageData.size(); ++pixel)
+	{
+		auto& element1 = img1.m_imageData[nextElement++];
+		auto element2 = img2.m_imageData[pixel];
+		MergeTwoPixel(element1, element2);
+	}
+
+	img1.type = ImageType::BMP;
+	const auto parentPath = std::filesystem::path(image1).parent_path().string();
+	WriteImage(img1, parentPath + BMP_FILENAME, error);
+	if (error != ErrorType::NO_ERROR)
+	{
+		std::cout << GetErrorString(error) << std::endl;
 	}
 }
 
