@@ -75,6 +75,7 @@ export
 		const auto cyphered = CreateVectorOfBits(randomShifted);
 		const auto result = CreateHashedString(cyphered);
 
+		img.type = ImageType::BMP;
 		WriteIntoImage(img, result);
 		const auto parentPath = std::filesystem::path(path).parent_path().string();
 		WriteImage(img, parentPath + BMP_FILENAME, error);

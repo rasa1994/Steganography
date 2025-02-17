@@ -277,7 +277,10 @@ export
 		{'6', 42},
 		{'7', 43},
 		{'8', 44},
-		{'9', 45}
+		{'9', 45},
+		{'\'', 46},
+		{'\"', 47},
+
 	};
 
 
@@ -364,6 +367,11 @@ export
 		for (const auto& character : decyphered)
 		{
 			const auto val = std::ranges::find_if(codes | std::ranges::views::values, [character](const auto& codeVal) {return codeVal == character; });
+			if (val.base() == codes.end())
+			{
+				std::cout << "Not found value: " << character << " " << character.to_ullong() << std::endl;
+				break;
+			}
 			returnValue.push_back(val.base()->first);
 		}
 

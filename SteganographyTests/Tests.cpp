@@ -195,6 +195,7 @@ TEST(ImageCryptHandlerTest, ExtractedTwoCharsFromPixel)
 	EXPECT_EQ(b, extractedA.second);
 }
 
+
 int main()
 {
     testing::InitGoogleTest();
